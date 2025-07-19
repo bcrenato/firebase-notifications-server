@@ -4,10 +4,18 @@ const admin = require('firebase-admin');
 const cors = require('cors');
 
 const app = express();
-app.use(bodyParser.json());
-app.use(cors());
 
-// Inicialize Firebase Admin com variável de ambiente FIREBASE_CREDENTIALS (JSON da conta de serviço)
+// 🔷 CORS configurado para seu domínio do GitHub Pages
+const corsOptions = {
+  origin: 'https://bcrenato.github.io', // só aceita requisições vindas daqui
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+};
+app.use(cors(corsOptions));
+
+app.use(bodyParser.json());
+
+// 🔷 Inicializa Firebase Admin com variável do Render
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 
 admin.initializeApp({
@@ -15,6 +23,7 @@ admin.initializeApp({
   databaseURL: "https://cadastro-membros-c5cd4-default-rtdb.firebaseio.com"
 });
 
+// 🔷 endpoint para enviar notificações
 app.post('/send', async (req, res) => {
   const { title, body, image } = req.body;
 
@@ -40,4 +49,4 @@ app.post('/send', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
