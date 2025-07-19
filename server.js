@@ -5,17 +5,20 @@ const cors = require('cors');
 
 const app = express();
 
-// Configura CORS para permitir chamadas do seu site no GitHub Pages
-const corsOptions = {
-  origin: 'https://bcrenato.github.io', // coloque * se quiser liberar para todos (não recomendado em prod)
+// ✅ Middleware de CORS no topo
+app.use(cors({
+  origin: 'https://bcrenato.github.io',
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type']
-};
-app.use(cors(corsOptions));
+}));
 
+// ✅ Body parser
 app.use(bodyParser.json());
 
-// Inicializa Firebase Admin usando as credenciais que você colocou no Render
+// ✅ Opcional: responder manualmente a qualquer OPTIONS (nem sempre necessário)
+app.options('*', cors());
+
+// 🔷 Inicializa Firebase Admin
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 
 admin.initializeApp({
@@ -23,12 +26,11 @@ admin.initializeApp({
   databaseURL: "https://cadastro-membros-c5cd4-default-rtdb.firebaseio.com"
 });
 
-// Endpoint para enviar notificações
+// 🔷 Endpoint POST
 app.post('/send', async (req, res) => {
   const { title, body, image } = req.body;
 
   try {
-    // Lê todos os tokens salvos no Realtime Database
     const snapshot = await admin.database().ref('tokens').once('value');
     const tokens = snapshot.exists() ? Object.values(snapshot.val()) : [];
 
@@ -37,28 +39,9 @@ app.post('/send', async (req, res) => {
     }
 
     const message = {
-      notification: {
-        title,
-        body,
-        image
-      },
+      notification: { title, body, image },
       tokens
     };
-
-    /**
-     * 🔷 Esta chamada usa a **API v1 do FCM**
-     * desde que:
-     * - O projeto no Firebase tenha a API v1 ativada (já está)
-     * - O admin SDK esteja atualizado (>=9 já usa v1 por padrão)
-     * - A conta de serviço tenha permissão
-     * 
-     * Se der erro 404 `/batch`, normalmente é por conta de:
-     * - SDK desatualizado
-     * - tokens inválidos (antigos ou incorretos)
-     * - permissões insuficientes
-     * 
-     * Por isso: garanta que tudo acima está OK!
-     */
 
     const response = await admin.messaging().sendMulticast(message);
 
