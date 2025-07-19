@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
@@ -9,50 +7,37 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
+// Inicialize Firebase Admin com variável de ambiente FIREBASE_CREDENTIALS (JSON da conta de serviço)
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 
-try {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: process.env.DATABASE_URL
-  });
-  console.log("✅ Firebase Admin inicializado com sucesso!");
-} catch (err) {
-  console.error("❌ Erro ao inicializar Firebase Admin:", err);
-  process.exit(1);
-}
-
-app.get('/', (req, res) => {
-  res.send('Servidor Firebase Admin rodando localmente');
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://SEU_PROJETO.firebaseio.com"
 });
 
 app.post('/send', async (req, res) => {
   const { title, body, image } = req.body;
 
-  console.log('📨 Requisição recebida para enviar notificações:', { title, body, image });
-
   try {
     const snapshot = await admin.database().ref('tokens').once('value');
-    const tokens = Object.values(snapshot.val() || {});
+    const tokens = snapshot.exists() ? Object.values(snapshot.val()) : [];
 
     if (tokens.length === 0) {
       return res.status(404).json({ error: 'Nenhum token encontrado.' });
     }
 
-    const response = await admin.messaging().sendMulticast({
-      tokens,
+    const message = {
       notification: { title, body, image },
-    });
+      tokens
+    };
 
-    console.log(`✅ Sucesso: ${response.successCount}, ❌ Falhas: ${response.failureCount}`);
-    res.json(response);
+    const response = await admin.messaging().sendMulticast(message);
+    res.json({ success: response.successCount, failure: response.failureCount });
   } catch (error) {
-    console.error('❌ Erro ao enviar notificações:', error);
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao enviar notificações.' });
   }
 });
 
-
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
