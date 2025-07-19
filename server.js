@@ -31,27 +31,27 @@ app.post('/send', async (req, res) => {
 
   console.log('📨 Requisição recebida para enviar notificações:', { title, body, image });
 
- try {
-  const snapshot = await admin.database().ref('tokens').once('value');
-  const tokens = Object.values(snapshot.val() || {});
+  try {
+    const snapshot = await admin.database().ref('tokens').once('value');
+    const tokens = Object.values(snapshot.val() || {});
 
-  if (tokens.length === 0) {
-    return res.status(404).json({ error: 'Nenhum token encontrado.' });
+    if (tokens.length === 0) {
+      return res.status(404).json({ error: 'Nenhum token encontrado.' });
+    }
+
+    const response = await admin.messaging().sendMulticast({
+      tokens,
+      notification: { title, body, image },
+    });
+
+    console.log(`✅ Sucesso: ${response.successCount}, ❌ Falhas: ${response.failureCount}`);
+    res.json(response);
+  } catch (error) {
+    console.error('❌ Erro ao enviar notificações:', error);
+    res.status(500).json({ error: error.message });
   }
-
-  const response = await admin.messaging().sendEachForMulticast({
-    tokens,
-    notification: { title, body, image },
-  });
-
-  console.log(`✅ Sucesso: ${response.successCount}, ❌ Falhas: ${response.failureCount}`);
-  res.json(response);
-} catch (error) {
-  console.error('❌ Erro ao enviar notificações:', error);
-  res.status(500).json({ error: error.message });
-}
-
 });
+
 
 
 const PORT = process.env.PORT || 3000;
