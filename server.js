@@ -12,7 +12,7 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://SEU_PROJETO.firebaseio.com"
+  databaseURL: "https://cadastro-membros-c5cd4-default-rtdb.firebaseio.com"
 });
 
 app.post('/send', async (req, res) => {
